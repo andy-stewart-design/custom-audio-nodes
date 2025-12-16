@@ -1,42 +1,42 @@
 // TODO: Move loop, loopStart, loopEnd to be properties (not AudioParams)
 
+import AudioEndedEvent from "./audio-event";
+import type { FilterType } from "../worklets/abstract-filter-processor";
 import type {
   SampleParameterData,
   SampleProcessorOptions,
 } from "../worklets/sample-processor";
-import AudioEndedEvent from "./audio-event";
 
 type ParamData = Omit<SampleParameterData, "loop"> & { loop: boolean };
 type SynthesizerOptions = Partial<ParamData & SampleProcessorOptions>;
 
 class SampleNode extends AudioWorkletNode {
-  readonly playbackRate: AudioParam;
-  readonly detune: AudioParam;
+  private _duration: number;
   private _loop: boolean;
   private _loopStart: number;
-  readonly loopEnd: AudioParam;
+  private _loopEnd: number;
+  private _filterType: FilterType;
+  readonly playbackRate: AudioParam;
+  readonly detune: AudioParam;
   readonly gain: AudioParam;
   readonly filterFrequency: AudioParam;
   readonly filterQ: AudioParam;
-  private _duration: number;
   onended: ((e: AudioEndedEvent) => void) | null = null;
 
   constructor(
     ctx: AudioContext,
     buffer: AudioBuffer,
-    { filterType, ...params }: SynthesizerOptions = {}
+    { filterType, loop, ...params }: SynthesizerOptions = {}
   ) {
-    const loop = params.loop ? 1 : 0;
-    const loopEnd = (params.loopEnd ?? 0) * buffer.duration;
-
     super(ctx, "buffer-source-processor", {
       numberOfOutputs: 1,
       outputChannelCount: [2],
-      parameterData: { ...params, loop, loopEnd },
+      parameterData: { ...params },
       processorOptions: {
         filterType,
-        loop: params.loop,
+        loop,
         loopStart: params.loopStart,
+        loopEnd: params.loopEnd,
       },
     });
 
@@ -44,10 +44,11 @@ class SampleNode extends AudioWorkletNode {
 
     this.playbackRate = getParam(this, "playbackRate");
     this.detune = getParam(this, "detune");
-    this._loop = params.loop ?? false;
+    this._loop = loop ?? false;
     this._loopStart = params.loopStart ?? 0;
-    this.loopEnd = getParam(this, "loopEnd");
+    this._loopEnd = params.loopEnd ?? 0;
     this.gain = getParam(this, "gain");
+    this._filterType = filterType ?? "none";
     this.filterFrequency = getParam(this, "filterFrequency");
     this.filterQ = getParam(this, "filterQ");
 
@@ -99,6 +100,16 @@ class SampleNode extends AudioWorkletNode {
     this.port.postMessage({ command: "loopStart", loopStart });
   }
 
+  setLoopEnd(loopEnd: number) {
+    this._loopEnd = loopEnd;
+    this.port.postMessage({ command: "loopEnd", loopEnd });
+  }
+
+  setFilterType(filterType: FilterType) {
+    this._filterType = filterType;
+    this.port.postMessage({ command: "filterType", filterType });
+  }
+
   get loop() {
     return this._loop;
   }
@@ -115,6 +126,24 @@ class SampleNode extends AudioWorkletNode {
   set loopStart(loopStart: number) {
     this._loopStart = loopStart;
     this.port.postMessage({ command: "loopStart", loopStart });
+  }
+
+  get loopEnd() {
+    return this._loopEnd;
+  }
+
+  set loopEnd(loopEnd: number) {
+    this._loopEnd = loopEnd;
+    this.port.postMessage({ command: "loopEnd", loopEnd });
+  }
+
+  get filterType() {
+    return this._filterType;
+  }
+
+  set filterType(filterType: FilterType) {
+    this._filterType = filterType;
+    this.port.postMessage({ command: "filterType", filterType });
   }
 }
 

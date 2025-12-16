@@ -70,7 +70,7 @@ function Synthesizer({ ctx }: { ctx: AudioContext }) {
       <button onClick={play}>Play</button>
       <button onClick={stop}>Stop</button>
       <label style={{ display: "block" }}>
-        Filter Type
+        Oscillator Type
         <input
           type="range"
           min={0}

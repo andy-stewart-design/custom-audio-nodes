@@ -86,7 +86,6 @@ const parameterDescriptors = [
     maxValue: 3.4028234663852886e38,
     minValue: -3.4028234663852886e38,
   },
-  { name: "loopEnd", defaultValue: 0 },
   {
     name: "gain",
     defaultValue: 1.0,
@@ -117,6 +116,7 @@ class SampleProcessor extends FilterProcessor {
   scheduledStopTime = null;
   loop = false;
   loopStart = 0;
+  loopEnd = 0;
 
   static get parameterDescriptors() {
     return parameterDescriptors;
@@ -128,6 +128,7 @@ class SampleProcessor extends FilterProcessor {
     this.filterType = processorOptions.filterType ?? "none";
     this.loop = processorOptions.loop ?? false;
     this.loopStart = processorOptions.loopStart ?? 0;
+    this.loopEnd = processorOptions.loopEnd ?? 0;
 
     this.port.onmessage = (event) => {
       if (event.data.command === "buffer") {
@@ -141,6 +142,10 @@ class SampleProcessor extends FilterProcessor {
         this.loop = event.data.loop ?? false;
       } else if (event.data.command === "loopStart") {
         this.loopStart = event.data.loopStart ?? 0;
+      } else if (event.data.command === "loopEnd") {
+        this.loopEnd = event.data.loopEnd ?? 0;
+      } else if (event.data.command === "filterType") {
+        this.filterType = event.data.filterType || "none";
       }
     };
   }
@@ -192,9 +197,7 @@ class SampleProcessor extends FilterProcessor {
       // Handle Looping
       const loop = this.loop;
       const loopStart = this.loopStart * buffer.length;
-      const loopEnd =
-        (parameters.loopEnd[i] ?? parameters.loopEnd[0]) * sampleRate ||
-        buffer.length;
+      const loopEnd = this.loopEnd * buffer.length;
 
       // Read from buffer (Linear Interpolation for smooth pitch)
       const idx = this.readIndex;

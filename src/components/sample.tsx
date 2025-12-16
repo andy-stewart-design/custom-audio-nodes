@@ -1,12 +1,15 @@
 import { useEffect, useState, type ChangeEvent } from "react";
 import SampleNode from "../audio-nodes/sample-node";
 import type { SampleParameter } from "../worklets/sample-processor";
+import type { FilterType } from "../worklets/abstract-filter-processor";
 
 function Sample({ ctx }: { ctx: AudioContext }) {
   const [buffer, setBuffer] = useState<AudioBuffer | null>(null);
   const [sampleNode, setSampleNode] = useState<SampleNode | null>(null);
   const [loop, setLoop] = useState<boolean>(true);
   const [loopStart, setLoopStart] = useState<number>(0.875);
+  const [loopEnd, setLoopEnd] = useState<number>(1);
+  const [filterType, setFilterType] = useState<FilterType>("lowpass");
 
   useEffect(() => {
     const init = async () => {
@@ -24,9 +27,10 @@ function Sample({ ctx }: { ctx: AudioContext }) {
     const node = new SampleNode(ctx, buffer, {
       loop,
       loopStart,
+      loopEnd,
       playbackRate: 1.0,
       gain: 0.5,
-      filterType: "lowpass",
+      filterType,
       filterFrequency: 600,
     });
 
@@ -72,6 +76,16 @@ function Sample({ ctx }: { ctx: AudioContext }) {
     sampleNode?.setLoopStart(e.target.valueAsNumber);
   }
 
+  function handleSetLoopEnd(e: ChangeEvent<HTMLInputElement>) {
+    setLoopEnd(e.target.valueAsNumber);
+    sampleNode?.setLoopEnd(e.target.valueAsNumber);
+  }
+
+  function handleSetFilterType(e: ChangeEvent<HTMLSelectElement>) {
+    setFilterType(e.target.value as FilterType);
+    sampleNode?.setFilterType(e.target.value as FilterType);
+  }
+
   return (
     <section>
       <h2>Sample Node</h2>
@@ -95,6 +109,31 @@ function Sample({ ctx }: { ctx: AudioContext }) {
           value={loopStart}
           onChange={handleSetLoopStart}
         />
+      </label>
+      <label style={{ display: "block" }}>
+        Loop End
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.125}
+          value={loopEnd}
+          onChange={handleSetLoopEnd}
+        />
+      </label>
+      <label>
+        Filter Type
+        <select
+          key={sampleNode?.filterType}
+          id="filterTypeSelect"
+          value={filterType}
+          onChange={handleSetFilterType}
+        >
+          <option value="none">No Filter</option>
+          <option value="lowpass">Lowpass</option>
+          <option value="highpass">Highpass</option>
+          <option value="bandpass">Bandpass</option>
+        </select>
       </label>
       <label style={{ display: "block" }}>
         Filter Frequency

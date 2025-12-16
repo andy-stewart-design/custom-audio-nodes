@@ -77,8 +77,8 @@ class SynthesizerProcessor extends FilterProcessor {
         this.currentPhase = 0.0;
       } else if (event.data.command === "stop") {
         this.scheduledStopTime = event.data.time || currentTime;
-      } else if (event.data.command === "setFilterType") {
-        this.filterType = event.data.type || "none";
+      } else if (event.data.command === "filterType") {
+        this.filterType = event.data.filterType || "none";
       }
     };
   }

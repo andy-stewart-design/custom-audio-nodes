@@ -13,11 +13,11 @@ type SynthesizerOptions = Partial<
 >;
 
 class SynthesizerNode extends AudioWorkletNode {
+  private _filterType: FilterType;
   readonly type: AudioParam;
   readonly frequency: AudioParam;
   readonly detune: AudioParam;
   readonly gain: AudioParam;
-  private _filterType: FilterType;
   readonly filterFrequency: AudioParam;
   readonly filterQ: AudioParam;
   onended: ((e: AudioEndedEvent) => void) | null = null;
@@ -69,8 +69,9 @@ class SynthesizerNode extends AudioWorkletNode {
       typeof type === "number" ? Math.min(Math.max(type, 0), 3) : typeMap[type];
   }
 
-  setFilterType(type: FilterType) {
-    this.port.postMessage({ command: "setFilterType", type });
+  setFilterType(filterType: FilterType) {
+    this._filterType = filterType;
+    this.port.postMessage({ command: "filterType", filterType });
   }
 
   get oscillatorType() {
@@ -87,9 +88,9 @@ class SynthesizerNode extends AudioWorkletNode {
     return this._filterType;
   }
 
-  set filterType(type: FilterType) {
-    this._filterType = type;
-    this.port.postMessage({ command: "setFilterType", type });
+  set filterType(filterType: FilterType) {
+    this._filterType = filterType;
+    this.port.postMessage({ command: "filterType", filterType });
   }
 }
 
