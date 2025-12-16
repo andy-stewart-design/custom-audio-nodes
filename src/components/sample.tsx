@@ -6,6 +6,7 @@ function Sample({ ctx }: { ctx: AudioContext }) {
   const [buffer, setBuffer] = useState<AudioBuffer | null>(null);
   const [sampleNode, setSampleNode] = useState<SampleNode | null>(null);
   const [loop, setLoop] = useState<boolean>(true);
+  const [loopStart, setLoopStart] = useState<number>(0.875);
 
   useEffect(() => {
     const init = async () => {
@@ -22,9 +23,9 @@ function Sample({ ctx }: { ctx: AudioContext }) {
 
     const node = new SampleNode(ctx, buffer, {
       loop,
+      loopStart,
       playbackRate: 1.0,
       gain: 0.5,
-      loopStart: 0.875,
       filterType: "lowpass",
       filterFrequency: 600,
     });
@@ -66,18 +67,34 @@ function Sample({ ctx }: { ctx: AudioContext }) {
     sampleNode?.setLoop(e.target.checked);
   }
 
+  function handleSetLoopStart(e: ChangeEvent<HTMLInputElement>) {
+    setLoopStart(e.target.valueAsNumber);
+    sampleNode?.setLoopStart(e.target.valueAsNumber);
+  }
+
   return (
     <section>
       <h2>Sample Node</h2>
-      <button onClick={play} disabled={!buffer}>
+      <button onClick={play} disabled={!buffer || !!sampleNode}>
         Play
       </button>
-      <button onClick={stop} disabled={!buffer}>
+      <button onClick={stop} disabled={!buffer || !sampleNode}>
         stop
       </button>
       <label style={{ display: "block" }}>
         <input type="checkbox" checked={loop} onChange={handleSetLoop} />
         Loop
+      </label>
+      <label style={{ display: "block" }}>
+        Loop Start
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.125}
+          value={loopStart}
+          onChange={handleSetLoopStart}
+        />
       </label>
       <label style={{ display: "block" }}>
         Filter Frequency

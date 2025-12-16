@@ -3,6 +3,7 @@ import FilterProcessor, { type FilterType } from "./abstract-filter-processor";
 interface SampleProcessorOptions {
   filterType: FilterType;
   loop: boolean;
+  loopStart: number;
 }
 
 type SampleParameterData = Record<SampleParameter, number>;
@@ -27,7 +28,6 @@ const parameterDescriptors = [
     maxValue: 3.4028234663852886e38,
     minValue: -3.4028234663852886e38,
   },
-  { name: "loopStart", defaultValue: 0 },
   { name: "loopEnd", defaultValue: 0 },
   {
     name: "gain",
@@ -58,6 +58,7 @@ class SampleProcessor extends FilterProcessor {
   private scheduledStartTime: number | null = null;
   private scheduledStopTime: number | null = null;
   private loop = false;
+  private loopStart = 0;
 
   static get parameterDescriptors() {
     return parameterDescriptors;
@@ -68,6 +69,7 @@ class SampleProcessor extends FilterProcessor {
     this.updateFilterCoefficients(20000.0, 0.707);
     this.filterType = processorOptions.filterType ?? "none";
     this.loop = processorOptions.loop ?? false;
+    this.loopStart = processorOptions.loopStart ?? 0;
 
     this.port.onmessage = (event) => {
       if (event.data.command === "buffer") {
@@ -79,6 +81,8 @@ class SampleProcessor extends FilterProcessor {
         this.scheduledStopTime = event.data.time || currentTime;
       } else if (event.data.command === "loop") {
         this.loop = event.data.loop ?? false;
+      } else if (event.data.command === "loopStart") {
+        this.loopStart = event.data.loopStart ?? 0;
       }
     };
   }
@@ -133,8 +137,7 @@ class SampleProcessor extends FilterProcessor {
 
       // Handle Looping
       const loop = this.loop;
-      const loopStart =
-        (parameters.loopStart[i] ?? parameters.loopStart[0]) * sampleRate;
+      const loopStart = this.loopStart * buffer.length;
       const loopEnd =
         (parameters.loopEnd[i] ?? parameters.loopEnd[0]) * sampleRate ||
         buffer.length;

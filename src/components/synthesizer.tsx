@@ -7,8 +7,6 @@ function Synthesizer({ ctx }: { ctx: AudioContext }) {
   const [synthNode, setSynthNode] = useState<SynthesizerNode | null>(null);
   const [filterType, setFilterType] = useState<FilterType>("lowpass");
 
-  console.log(synthNode?.setFilterType);
-
   function play() {
     if (!ctx || synthNode) return;
     if (ctx.state === "suspended") ctx.resume();

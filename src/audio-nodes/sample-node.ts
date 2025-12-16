@@ -13,7 +13,7 @@ class SampleNode extends AudioWorkletNode {
   readonly playbackRate: AudioParam;
   readonly detune: AudioParam;
   private _loop: boolean;
-  readonly loopStart: AudioParam;
+  private _loopStart: number;
   readonly loopEnd: AudioParam;
   readonly gain: AudioParam;
   readonly filterFrequency: AudioParam;
@@ -27,14 +27,17 @@ class SampleNode extends AudioWorkletNode {
     { filterType, ...params }: SynthesizerOptions = {}
   ) {
     const loop = params.loop ? 1 : 0;
-    const loopStart = (params.loopStart ?? 0) * buffer.duration;
     const loopEnd = (params.loopEnd ?? 0) * buffer.duration;
 
     super(ctx, "buffer-source-processor", {
       numberOfOutputs: 1,
       outputChannelCount: [2],
-      parameterData: { ...params, loop, loopStart, loopEnd },
-      processorOptions: { filterType, loop: params.loop },
+      parameterData: { ...params, loop, loopEnd },
+      processorOptions: {
+        filterType,
+        loop: params.loop,
+        loopStart: params.loopStart,
+      },
     });
 
     this._duration = buffer.duration;
@@ -42,7 +45,7 @@ class SampleNode extends AudioWorkletNode {
     this.playbackRate = getParam(this, "playbackRate");
     this.detune = getParam(this, "detune");
     this._loop = params.loop ?? false;
-    this.loopStart = getParam(this, "loopStart");
+    this._loopStart = params.loopStart ?? 0;
     this.loopEnd = getParam(this, "loopEnd");
     this.gain = getParam(this, "gain");
     this.filterFrequency = getParam(this, "filterFrequency");
@@ -91,6 +94,11 @@ class SampleNode extends AudioWorkletNode {
     this.port.postMessage({ command: "loop", loop });
   }
 
+  setLoopStart(loopStart: number) {
+    this._loopStart = loopStart;
+    this.port.postMessage({ command: "loopStart", loopStart });
+  }
+
   get loop() {
     return this._loop;
   }
@@ -98,6 +106,15 @@ class SampleNode extends AudioWorkletNode {
   set loop(loop: boolean) {
     this._loop = loop;
     this.port.postMessage({ command: "loop", loop });
+  }
+
+  get loopStart() {
+    return this._loopStart;
+  }
+
+  set loopStart(loopStart: number) {
+    this._loopStart = loopStart;
+    this.port.postMessage({ command: "loopStart", loopStart });
   }
 }
 
