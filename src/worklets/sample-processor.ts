@@ -59,7 +59,7 @@ const parameterDescriptors = [
 
 class SampleProcessor extends FilterProcessor {
   private readIndex = 0;
-  private buffer: Float32Array | null = null;
+  private buffer: Float32Array<ArrayBuffer> | null = null;
   private isRunning = false;
   private scheduledStartTime: number | null = null;
   private scheduledStopTime: number | null = null;

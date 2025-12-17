@@ -20,7 +20,7 @@ type SampleNodeMessage =
     }
   | {
       type: "buffer";
-      buffer: Float32Array;
+      buffer: Float32Array<ArrayBuffer>;
     }
   | {
       type: "loopStart" | "loopEnd";
