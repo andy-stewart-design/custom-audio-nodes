@@ -1,4 +1,5 @@
 import FilterProcessor, { type FilterType } from "./abstract-filter-processor";
+import type { SampleNodeMessage } from "../audio-nodes/sample-node";
 
 interface SampleProcessorOptions {
   filterType: FilterType;
@@ -13,6 +14,11 @@ type SampleParameter = (typeof parameterDescriptors)[number]["name"];
 interface SampleOptions {
   processorOptions: Partial<SampleProcessorOptions>;
 }
+
+type SampleProcessorMessage = {
+  type: "ended";
+  time: number;
+};
 
 const parameterDescriptors = [
   {
@@ -73,24 +79,42 @@ class SampleProcessor extends FilterProcessor {
     this.loopStart = processorOptions.loopStart ?? 0;
     this.loopEnd = processorOptions.loopEnd ?? 0;
 
-    this.port.onmessage = (event) => {
-      if (event.data.command === "buffer") {
-        this.buffer = event.data.buffer; // Float32Array
-      } else if (event.data.command === "start") {
-        this.scheduledStartTime = event.data.time || currentTime;
-        this.readIndex = event.data.offset || 0;
-      } else if (event.data.command === "stop") {
-        this.scheduledStopTime = event.data.time || currentTime;
-      } else if (event.data.command === "loop") {
-        this.loop = event.data.loop ?? false;
-      } else if (event.data.command === "loopStart") {
-        this.loopStart = event.data.loopStart ?? 0;
-      } else if (event.data.command === "loopEnd") {
-        this.loopEnd = event.data.loopEnd ?? 0;
-      } else if (event.data.command === "filterType") {
-        this.filterType = event.data.filterType || "none";
+    this.port.onmessage = (event: MessageEvent<SampleNodeMessage>) => {
+      switch (event.data.type) {
+        case "buffer":
+          this.buffer = event.data.buffer;
+          break;
+
+        case "start":
+          this.scheduledStartTime = event.data.time ?? currentTime;
+          this.readIndex = event.data.offset || 0;
+          break;
+
+        case "stop":
+          this.scheduledStopTime = event.data.time ?? currentTime;
+          break;
+
+        case "loop":
+          this.loop = event.data.loop ?? false;
+          break;
+        case "loopStart":
+          this.loopStart = event.data.offset ?? 0;
+          break;
+
+        case "loopEnd":
+          this.loopEnd = event.data.offset ?? 0;
+          break;
+
+        case "filterType":
+          this.filterType = event.data.filterType ?? "none";
+          break;
       }
     };
+  }
+
+  postEndedMessage(time: number) {
+    const msg: SampleProcessorMessage = { type: "ended", time };
+    this.port.postMessage(msg);
   }
 
   process(
@@ -126,7 +150,7 @@ class SampleProcessor extends FilterProcessor {
       ) {
         this.isRunning = false;
         this.scheduledStopTime = null;
-        this.port.postMessage({ event: "ended", time: currentTime });
+        this.postEndedMessage(currentTime);
       }
 
       if (!this.isRunning) {
@@ -177,7 +201,7 @@ class SampleProcessor extends FilterProcessor {
         this.resetFilterState();
       } else if (this.readIndex >= buffer.length) {
         this.isRunning = false;
-        this.port.postMessage({ event: "ended", time: currentTime });
+        this.postEndedMessage(currentTime);
         break;
       }
     }
@@ -188,4 +212,9 @@ class SampleProcessor extends FilterProcessor {
 registerProcessor("buffer-source-processor", SampleProcessor);
 
 export default SampleProcessor;
-export type { SampleParameter, SampleParameterData, SampleProcessorOptions };
+export type {
+  SampleParameter,
+  SampleParameterData,
+  SampleProcessorOptions,
+  SampleProcessorMessage,
+};

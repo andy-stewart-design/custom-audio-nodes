@@ -131,23 +131,41 @@ class SampleProcessor extends FilterProcessor {
     this.loopEnd = processorOptions.loopEnd ?? 0;
 
     this.port.onmessage = (event) => {
-      if (event.data.command === "buffer") {
-        this.buffer = event.data.buffer; // Float32Array
-      } else if (event.data.command === "start") {
-        this.scheduledStartTime = event.data.time || currentTime;
-        this.readIndex = event.data.offset || 0;
-      } else if (event.data.command === "stop") {
-        this.scheduledStopTime = event.data.time || currentTime;
-      } else if (event.data.command === "loop") {
-        this.loop = event.data.loop ?? false;
-      } else if (event.data.command === "loopStart") {
-        this.loopStart = event.data.loopStart ?? 0;
-      } else if (event.data.command === "loopEnd") {
-        this.loopEnd = event.data.loopEnd ?? 0;
-      } else if (event.data.command === "filterType") {
-        this.filterType = event.data.filterType || "none";
+      switch (event.data.type) {
+        case "buffer":
+          this.buffer = event.data.buffer;
+          break;
+
+        case "start":
+          this.scheduledStartTime = event.data.time ?? currentTime;
+          this.readIndex = event.data.offset || 0;
+          break;
+
+        case "stop":
+          this.scheduledStopTime = event.data.time ?? currentTime;
+          break;
+
+        case "loop":
+          this.loop = event.data.loop ?? false;
+          break;
+        case "loopStart":
+          this.loopStart = event.data.offset ?? 0;
+          break;
+
+        case "loopEnd":
+          this.loopEnd = event.data.offset ?? 0;
+          break;
+
+        case "filterType":
+          this.filterType = event.data.filterType ?? "none";
+          break;
       }
     };
+  }
+
+  postEndedMessage(time) {
+    const msg = { type: "ended", time };
+    this.port.postMessage(msg);
   }
 
   process(_, outputs, parameters) {
@@ -179,7 +197,7 @@ class SampleProcessor extends FilterProcessor {
       ) {
         this.isRunning = false;
         this.scheduledStopTime = null;
-        this.port.postMessage({ event: "ended", time: currentTime });
+        this.postEndedMessage(currentTime);
       }
 
       if (!this.isRunning) {
@@ -230,7 +248,7 @@ class SampleProcessor extends FilterProcessor {
         this.resetFilterState();
       } else if (this.readIndex >= buffer.length) {
         this.isRunning = false;
-        this.port.postMessage({ event: "ended", time: currentTime });
+        this.postEndedMessage(currentTime);
         break;
       }
     }

@@ -24,7 +24,7 @@ class SynthesizerNode extends AudioWorkletNode {
 
   constructor(
     ctx: AudioContext,
-    { filterType, ...params }: SynthesizerOptions = {}
+    { filterType = "none", ...params }: SynthesizerOptions = {}
   ) {
     super(ctx, "custom-oscillator-processor", {
       numberOfOutputs: 1,
@@ -33,7 +33,7 @@ class SynthesizerNode extends AudioWorkletNode {
       processorOptions: { filterType },
     });
 
-    this._filterType = filterType ?? "none";
+    this._filterType = filterType;
     this.type = getParam(this, "type");
     this.frequency = getParam(this, "frequency");
     this.detune = getParam(this, "detune");

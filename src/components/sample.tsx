@@ -6,6 +6,7 @@ import type { FilterType } from "../worklets/abstract-filter-processor";
 function Sample({ ctx }: { ctx: AudioContext }) {
   const [buffer, setBuffer] = useState<AudioBuffer | null>(null);
   const [sampleNode, setSampleNode] = useState<SampleNode | null>(null);
+  const [startOffset, setStartOffset] = useState<number>(0.0);
   const [loop, setLoop] = useState<boolean>(true);
   const [loopStart, setLoopStart] = useState<number>(0.875);
   const [loopEnd, setLoopEnd] = useState<number>(1);
@@ -35,7 +36,7 @@ function Sample({ ctx }: { ctx: AudioContext }) {
     });
 
     node.connect(ctx.destination);
-    node.start(ctx.currentTime, 0.0);
+    node.start(ctx.currentTime, startOffset);
     node.addEventListener("ended", () => {
       console.log("Sample ended");
       node.disconnect();
@@ -95,6 +96,17 @@ function Sample({ ctx }: { ctx: AudioContext }) {
       <button onClick={stop} disabled={!buffer || !sampleNode}>
         stop
       </button>
+      <label style={{ display: "block" }}>
+        Start Offset
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.125}
+          value={startOffset}
+          onChange={(e) => setStartOffset(e.target.valueAsNumber)}
+        />
+      </label>
       <label style={{ display: "block" }}>
         <input type="checkbox" checked={loop} onChange={handleSetLoop} />
         Loop
