@@ -131,14 +131,18 @@ class SynthesizerProcessor extends FilterProcessor {
     this.updateFilterCoefficients(20000.0, 0.707);
     this.filterType = processorOptions.filterType ?? "none";
 
-    this.port.onmessage = (event) => {
-      if (event.data.command === "start") {
-        this.scheduledStartTime = event.data.time || currentTime;
-        this.currentPhase = 0.0;
-      } else if (event.data.command === "stop") {
-        this.scheduledStopTime = event.data.time || currentTime;
-      } else if (event.data.command === "filterType") {
-        this.filterType = event.data.filterType || "none";
+    this.port.onmessage = ({ data }) => {
+      switch (data.type) {
+        case "start":
+          this.scheduledStartTime = data.time || currentTime;
+          this.currentPhase = 0.0;
+          break;
+        case "stop":
+          this.scheduledStopTime = data.time || currentTime;
+          break;
+        case "filterType":
+          this.filterType = data.filterType || "none";
+          break;
       }
     };
   }
@@ -173,6 +177,11 @@ class SynthesizerProcessor extends FilterProcessor {
       default:
         return Math.sin(2.0 * Math.PI * phase);
     }
+  }
+
+  postEndedMessage(time) {
+    const msg = { type: "ended", time };
+    this.port.postMessage(msg);
   }
 
   process(_, outputs, parameters) {
@@ -212,7 +221,7 @@ class SynthesizerProcessor extends FilterProcessor {
       ) {
         this.isRunning = false;
         this.scheduledStopTime = null;
-        this.port.postMessage({ event: "ended", time: currentTime });
+        this.postEndedMessage(currentTime);
       }
 
       if (!this.isRunning) {

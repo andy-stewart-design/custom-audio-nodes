@@ -30,7 +30,6 @@ function Sample({ ctx }: { ctx: AudioContext }) {
       loopStart,
       loopEnd,
       playbackRate: 1.0,
-      gain: 0.5,
       filterType,
       filterFrequency: 600,
     });

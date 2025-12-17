@@ -76,7 +76,7 @@ function Synthesizer({ ctx }: { ctx: AudioContext }) {
           min={0}
           max={3}
           defaultValue={1}
-          step={0.01}
+          step={1}
           onChange={(e) => synthNode?.setOscillatorType(e.target.valueAsNumber)}
         />
       </label>

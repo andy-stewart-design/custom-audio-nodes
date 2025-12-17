@@ -5,12 +5,23 @@ import type { FilterType } from "../worklets/abstract-filter-processor";
 import type {
   SynthesizerProcessorOptions,
   SynthesizerParameterData,
+  SynthesizerProcessorMessage,
 } from "../worklets/synthesizer-processor";
 
 type SynthesizerWaveform = "sine" | "sawtooth" | "triangle" | "square";
 type SynthesizerOptions = Partial<
   SynthesizerProcessorOptions & SynthesizerParameterData
 >;
+type SynthesizerNodeMessage =
+  | {
+      type: "start" | "stop";
+      time: number;
+      offset?: number;
+    }
+  | {
+      type: "filterType";
+      filterType: FilterType;
+    };
 
 class SynthesizerNode extends AudioWorkletNode {
   private _filterType: FilterType;
@@ -42,25 +53,29 @@ class SynthesizerNode extends AudioWorkletNode {
     this.filterQ = getParam(this, "filterQ");
 
     // Listen for messages from the processor
-    this.port.onmessage = (event) => {
-      if (event.data.event === "ended") {
-        const { time } = event.data;
-        const eventTime = typeof time === "number" ? time : 0;
-        const audioEvent = new AudioEndedEvent(eventTime);
+    this.port.onmessage = (
+      event: MessageEvent<SynthesizerProcessorMessage>
+    ) => {
+      if (event.data.type === "ended") {
+        const audioEvent = new AudioEndedEvent(event.data.time);
         this.onended?.(audioEvent);
         this.dispatchEvent(audioEvent);
       }
     };
   }
 
+  private postMessage(msg: SynthesizerNodeMessage) {
+    this.port.postMessage(msg);
+  }
+
   start(when: number = 0) {
     const startTime = when === 0 ? this.context.currentTime : when;
-    this.port.postMessage({ command: "start", time: startTime });
+    this.postMessage({ type: "start", time: startTime });
   }
 
   stop(when: number = 0) {
     const stopTime = when === 0 ? this.context.currentTime : when;
-    this.port.postMessage({ command: "stop", time: stopTime });
+    this.postMessage({ type: "stop", time: stopTime });
   }
 
   setOscillatorType(type: SynthesizerWaveform | number) {
@@ -71,7 +86,7 @@ class SynthesizerNode extends AudioWorkletNode {
 
   setFilterType(filterType: FilterType) {
     this._filterType = filterType;
-    this.port.postMessage({ command: "filterType", filterType });
+    this.postMessage({ type: "filterType", filterType });
   }
 
   get oscillatorType() {
@@ -90,7 +105,7 @@ class SynthesizerNode extends AudioWorkletNode {
 
   set filterType(filterType: FilterType) {
     this._filterType = filterType;
-    this.port.postMessage({ command: "filterType", filterType });
+    this.postMessage({ type: "filterType", filterType });
   }
 }
 
@@ -101,3 +116,4 @@ function getParam(node: AudioWorkletNode, name: string) {
 }
 
 export default SynthesizerNode;
+export type { SynthesizerNodeMessage };

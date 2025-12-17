@@ -79,34 +79,34 @@ class SampleProcessor extends FilterProcessor {
     this.loopStart = processorOptions.loopStart ?? 0;
     this.loopEnd = processorOptions.loopEnd ?? 0;
 
-    this.port.onmessage = (event: MessageEvent<SampleNodeMessage>) => {
-      switch (event.data.type) {
+    this.port.onmessage = ({ data }: MessageEvent<SampleNodeMessage>) => {
+      switch (data.type) {
         case "buffer":
-          this.buffer = event.data.buffer;
+          this.buffer = data.buffer;
           break;
 
         case "start":
-          this.scheduledStartTime = event.data.time ?? currentTime;
-          this.readIndex = event.data.offset || 0;
+          this.scheduledStartTime = data.time ?? currentTime;
+          this.readIndex = data.offset || 0;
           break;
 
         case "stop":
-          this.scheduledStopTime = event.data.time ?? currentTime;
+          this.scheduledStopTime = data.time ?? currentTime;
           break;
 
         case "loop":
-          this.loop = event.data.loop ?? false;
+          this.loop = data.loop ?? false;
           break;
         case "loopStart":
-          this.loopStart = event.data.offset ?? 0;
+          this.loopStart = data.offset ?? 0;
           break;
 
         case "loopEnd":
-          this.loopEnd = event.data.offset ?? 0;
+          this.loopEnd = data.offset ?? 0;
           break;
 
         case "filterType":
-          this.filterType = event.data.filterType ?? "none";
+          this.filterType = data.filterType ?? "none";
           break;
       }
     };

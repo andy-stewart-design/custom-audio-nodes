@@ -1,3 +1,4 @@
+import type { SynthesizerNodeMessage } from "../audio-nodes/synthesizer-node";
 import FilterProcessor, { type FilterType } from "./abstract-filter-processor";
 
 interface SynthesizerProcessorOptions {
@@ -10,6 +11,11 @@ type SynthesizerParameterData = Record<SynthesizerParameter, number>;
 interface SynthesizerOptions {
   processorOptions: Partial<SynthesizerProcessorOptions>;
 }
+
+type SynthesizerProcessorMessage = {
+  type: "ended";
+  time: number;
+};
 
 const parameterDescriptors = [
   {
@@ -59,8 +65,8 @@ const parameterDescriptors = [
 class SynthesizerProcessor extends FilterProcessor {
   currentPhase = 0.0;
   isRunning = false;
-  scheduledStartTime = null;
-  scheduledStopTime = null;
+  scheduledStartTime: number | null = null;
+  scheduledStopTime: number | null = null;
 
   static get parameterDescriptors() {
     return parameterDescriptors;
@@ -71,14 +77,18 @@ class SynthesizerProcessor extends FilterProcessor {
     this.updateFilterCoefficients(20000.0, 0.707);
     this.filterType = processorOptions.filterType ?? "none";
 
-    this.port.onmessage = (event) => {
-      if (event.data.command === "start") {
-        this.scheduledStartTime = event.data.time || currentTime;
-        this.currentPhase = 0.0;
-      } else if (event.data.command === "stop") {
-        this.scheduledStopTime = event.data.time || currentTime;
-      } else if (event.data.command === "filterType") {
-        this.filterType = event.data.filterType || "none";
+    this.port.onmessage = ({ data }: MessageEvent<SynthesizerNodeMessage>) => {
+      switch (data.type) {
+        case "start":
+          this.scheduledStartTime = data.time || currentTime;
+          this.currentPhase = 0.0;
+          break;
+        case "stop":
+          this.scheduledStopTime = data.time || currentTime;
+          break;
+        case "filterType":
+          this.filterType = data.filterType || "none";
+          break;
       }
     };
   }
@@ -113,6 +123,11 @@ class SynthesizerProcessor extends FilterProcessor {
       default:
         return Math.sin(2.0 * Math.PI * phase);
     }
+  }
+
+  postEndedMessage(time: number) {
+    const msg: SynthesizerProcessorMessage = { type: "ended", time };
+    this.port.postMessage(msg);
   }
 
   process(
@@ -156,7 +171,7 @@ class SynthesizerProcessor extends FilterProcessor {
       ) {
         this.isRunning = false;
         this.scheduledStopTime = null;
-        this.port.postMessage({ event: "ended", time: currentTime });
+        this.postEndedMessage(currentTime);
       }
 
       if (!this.isRunning) {
@@ -199,4 +214,5 @@ export type {
   SynthesizerParameter,
   SynthesizerParameterData,
   SynthesizerProcessorOptions,
+  SynthesizerProcessorMessage,
 };
