@@ -170,17 +170,19 @@ class SampleProcessor extends FilterProcessor {
 
   process(_, outputs, parameters) {
     const output = outputs[0];
+    const outChan = output?.[0];
     const buffer = this.buffer;
-    if (!buffer) return true;
-
     const filterFrequencyArray = parameters.filterFrequency;
     const filterQArray = parameters.filterQ;
     // Update filter coefficients (k-rate, so once per block)
-    const filterFreq = filterFrequencyArray[0];
-    const filterQ = filterQArray[0];
+    const filterFreq = filterFrequencyArray?.[0];
+    const filterQ = filterQArray?.[0];
+
+    if (!outChan || !buffer || !filterFreq || !filterQ) return true;
+
     this.updateFilterCoefficients(filterFreq, filterQ);
 
-    for (let i = 0; i < output[0].length; i++) {
+    for (let i = 0; i < outChan.length; i++) {
       const sampleTime = currentTime + i / sampleRate;
 
       // Start/Stop Logic
@@ -201,14 +203,14 @@ class SampleProcessor extends FilterProcessor {
       }
 
       if (!this.isRunning) {
-        output[0][i] = 0;
+        outChan[i] = 0;
         continue;
       }
 
       // Calculate Pitch Factor
       const playbackRate =
-        parameters.playbackRate[i] ?? parameters.playbackRate[0];
-      const detune = parameters.detune[i] ?? parameters.detune[0];
+        parameters.playbackRate?.[i] ?? parameters.playbackRate?.[0] ?? 1;
+      const detune = parameters.detune?.[i] ?? parameters.detune?.[0] ?? 0;
       const detuneFactor = Math.pow(2.0, detune / 1200.0);
       const speed = playbackRate * detuneFactor;
 
@@ -220,16 +222,17 @@ class SampleProcessor extends FilterProcessor {
       // Read from buffer (Linear Interpolation for smooth pitch)
       const idx = this.readIndex;
       const i0 = Math.floor(idx);
-      const i1 =
-        i0 + 1 >= (loop ? loopEnd : buffer.length)
-          ? loop
-            ? loopStart
-            : i0
-          : i0 + 1;
       const frac = idx - i0;
 
-      const sample = buffer[i0] + frac * (buffer[i1] - buffer[i0]);
-      const gain = parameters.gain[i] ?? parameters.gain[0];
+      const maxIndex = loop ? loopEnd : buffer.length;
+      let i1 = i0 + 1;
+      if (i1 >= maxIndex) i1 = loop ? loopStart : i0;
+
+      const samp0 = buffer[i0] ?? 0;
+      const samp1 = buffer[i1] ?? 0;
+
+      const sample = samp0 + frac * (samp1 - samp0);
+      const gain = parameters.gain?.[i] ?? parameters.gain?.[0] ?? 1;
 
       let filteredSample = sample * gain;
       if (this.filterType !== "none") {
@@ -237,7 +240,8 @@ class SampleProcessor extends FilterProcessor {
       }
 
       for (let channel = 0; channel < output.length; channel++) {
-        output[channel][i] = filteredSample;
+        const out = output[channel];
+        if (out) out[i] = filteredSample;
       }
 
       // Advance Pointer
